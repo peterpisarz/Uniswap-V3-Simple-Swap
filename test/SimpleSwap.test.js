@@ -19,25 +19,36 @@ describe("SimpleSwap", function () {
   it("Should provide a caller with more DAI than they started with after a swap", async function () {
     
     /* Deploy the SimpleSwap contract */
-
+    const SimpleSwap = await ethers.getContractFactory("SimpleSwap")
+    const simpleSwap = await SimpleSwap.deploy(SwapRouterAddress)
+    await simpleSwap.deployed()
+    console.log(simpleSwap.address)
 
     /* Connect to weth9 and wrap some eth  */
-
+    const [signer] = await ethers.getSigners()
+    console.log(signer)
+    const weth = new ethers.Contract(WETH_ADDRESS, ercAbi, signer)
+    await weth.deposit({ value: ethers.utils.parseEther("1.0") })
     
     /* Check Initial DAI Balance */ 
+    const dai = new ethers.Contract(DAI_ADDRESS, ercAbi, signer)
+    const result = await dai.balanceOf(signer.address)
+    console.log(`Result: ${result.toString()}`)
 
 
     /* Approve the swapper contract to spend weth9 for me */
+    const wethAmount = ethers.utils.parseEther("1.0");
+    await weth.approve(simpleSwap.address, wethAmount)
 
-    
     /* Execute the swap */
- 
+    await simpleSwap.swapWETHForDai(wethAmount) 
     
     /* Check DAI end balance */
+    const finalDAIBalance = await dai.balanceOf(signer.address)
+    console.log(`Final DAI Balance: ${Number(ethers.utils.formatUnits(finalDAIBalance, 'ether')).toFixed(6)}`)
 
-    
     /* Test that we now have more DAI than when we started */
-
+    expect(finalDAIBalance).to.be.gt(result, "DAI Balance should be greater after swap")
 
   });
 });
